@@ -301,7 +301,7 @@ def read_requests_csv(_inData,_params, path): #f#
     requests.ride_id = _inData.passengers.index
     requests.origin = df.origin
     requests.destination = df.destination
-    requests['u_PT'] = df['u_PT']
+    # requests['u_PT'] = df['u_PT']
 
     # print("3")
 
@@ -343,7 +343,7 @@ def read_requests_csv(_inData,_params, path): #f#
     
     _inData.passengers['pax_id'] = _inData.passengers.index.copy()
     _inData.passengers.pos = _inData.requests.origin.copy()
-    _inData.passengers['u_PT'] = _inData.requests.u_PT.copy()
+    # _inData.passengers['u_PT'] = _inData.requests.u_PT.copy()
     
     _inData.passengers.platforms = _inData.passengers.platforms.apply(lambda x: [1])
     

@@ -337,9 +337,10 @@ def RL_d2d_kpi_veh(*args,**kwargs):
 
     ret['pre_EXPERIENCE_U'] = params.d2d.Eini_att if run_id == 0 else sim.res[run_id-1].veh_exp.EXPERIENCE_U
     ret['inc_dif'] = ret.apply(lambda row: 0 if row.mu==0 else (params.d2d.res_wage-row['ACTUAL_INC'])/params.d2d.res_wage, axis=1)
+    # ret['inc_dif'] = ret.apply(lambda row: (params.d2d.res_wage-row['ACTUAL_INC'])/params.d2d.res_wage, axis=1)
     
     ret['EXPERIENCE_U'] = ret.apply(lambda row: min((1-1e-2), max(1/(1+math.exp(params.d2d.learning_d*(ln((1/row.pre_EXPERIENCE_U)-1)+params.d2d.adj_s*row.inc_dif))), 1e-2)), axis=1)
-    
+    # print(ret[['ACTUAL_INC', 'inc_dif', 'EXPERIENCE_U']])
     #--------------------------------------------------------
     """ Utility gained through marketing"""
 
@@ -552,6 +553,7 @@ def RL_d2d_kpi_pax(*args,**kwargs):
     ret['ACTUAL_WT'] = (ret['RECEIVES_OFFER'] + ret['MEETS_DRIVER_AT_PICKUP'] + ret.get('LOSES_PATIENCE', 0))/60  #in minute
     ret['MATCHING_T'] = (ret['RECEIVES_OFFER'] + ret.get('LOSES_PATIENCE', 0))/60  #in minute
     ret['OPERATIONS'] = ret['ACCEPTS_OFFER'] + ret['DEPARTS_FROM_PICKUP'] + ret['SETS_OFF_FOR_DEST']
+    # print(ret)
     ret.fillna(0, inplace=True)
     
     # Traveller adaptation (learning) --------------------------------------------------------------------------------- #
@@ -573,10 +575,17 @@ def RL_d2d_kpi_pax(*args,**kwargs):
     # print(sim.params.platforms, sim.params.platforms.loc[1])
     ret['pre_EXPERIENCE_U'] = params.d2d.Eini_att if run_id == 0 else sim.res[run_id-1].pax_exp.EXPERIENCE_U
     ret['rh_U'] = ret.apply(lambda row: rh_U_func(row, sim, unfulfilled_requests, ret), axis=1)
-    # ret['alt_U'] = ret.apply(lambda row: sim.pax[row.name].pax.u_PT, axis=1)
-    ret['alt_U'] = ret.apply(lambda row: sim.pax[row.name].pax.u_PT, axis=1)
+    # ret['alt_U'] = ret.apply(lambda row: sim.pax[row.name].pax.u_PT, axis=1) #bez U_PT
+    ret['alt_U'] = ret.apply(lambda row: alt_U_func(row, sim), axis=1) ##stala jak w reservation wage
     ret['U_dif'] = ret.apply(lambda row: 0 if row.mu==0 else (row['alt_U']-row['rh_U'])/abs(row['alt_U']), axis=1)
-    
+
+    # #####################
+    # ret['time_dif'] = ret.apply(lambda row: 0 if row.mu==0 else ((1.5 * row['TRAVEL'])-(row['TRAVEL'] + row['ACTUAL_WT']))/(1.5 * row['TRAVEL']), axis=1)
+    # ret['pay_dif'] = ret.apply(lambda row: 0 if row.mu==0 else (row['PT_fare'] - row['rh_fare'])/row['PT_fare'], axis=1)
+    # ret['combined_dif'] = 0.5 * ret['time_dif'] + 0.5 * ret['pay_dif']
+    # ret['EXPERIENCE_U'] = ret.apply(lambda row: min((1-1e-2), max(1/(1+math.exp(params.d2d.learning_d*(ln((1/row.pre_EXPERIENCE_U)-1)+params.d2d.adj_s*row.combined_dif))), 1e-2)), axis=1)
+    # ##################
+
     ret['EXPERIENCE_U'] = ret.apply(lambda row: min((1-1e-2), max(1/(1+math.exp(params.d2d.learning_d*(ln((1/row.pre_EXPERIENCE_U)-1)+params.d2d.adj_s*row.U_dif))), 1e-2)), axis=1)
     
     #--------------------------------------------------------
@@ -620,7 +629,7 @@ def RL_d2d_kpi_pax(*args,**kwargs):
     
     # ================================================================================================= #
 
-    ret = ret[['rh_U','alt_U','ACTUAL_WT', 'U_dif','OUT','mu','nDAYS_HAILED','EXPERIENCE_U',
+    ret = ret[['rh_U', 'alt_U', 'ACTUAL_WT', 'U_dif','OUT','mu','nDAYS_HAILED','EXPERIENCE_U',
                'MARKETING_U','WOM_U','INFORMED', 'plat_profit','MATCHING_T'] + [_.name for _ in travellerEvent]]
     ret.index.name = 'pax'
 
